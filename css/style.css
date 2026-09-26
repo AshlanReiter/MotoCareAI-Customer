@@ -107,3 +107,30 @@ a{text-decoration:none;color:inherit}
 .toast.show{opacity:1;transform:none}.mobile-menu{display:none}
 @media(max-width:1000px){.cards{grid-template-columns:repeat(2,1fr)}.grid-2,.detail-grid,.hero-bike{grid-template-columns:1fr}.rec-grid,.grid-3{grid-template-columns:1fr 1fr}.sidebar{transform:translateX(-100%);transition:.2s}.sidebar.open{transform:none}.main{margin-left:0}.mobile-menu{display:block}}
 @media(max-width:650px){.content{padding:18px}.topbar{padding:0 16px}.cards,.rec-grid,.grid-3,.kpi-row{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.page-head{flex-direction:column}.msg{max-width:88%}}
+
+/* Account & access additions */
+.notification-wrap,.profile-wrap{position:relative}
+.notification-dot{position:absolute;right:-3px;top:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--primary);color:#fff;font-size:9px;display:grid;place-items:center;border:2px solid #fff}
+.profile-button{border:0;background:transparent;padding:3px 5px;cursor:pointer}
+.profile-chevron{font-size:13px;color:var(--muted);margin-left:2px}
+.profile-menu,.notification-panel{position:absolute;right:0;top:48px;width:280px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 15px 35px rgba(20,25,30,.13);z-index:40;overflow:hidden}
+.profile-menu-head{display:flex;gap:10px;padding:14px;border-bottom:1px solid var(--border);align-items:center}
+.profile-menu-head .avatar{flex:none}
+.profile-menu-head strong,.profile-menu-head span{display:block}.profile-menu-head span{font-size:10px;color:var(--muted);margin-top:2px}
+.profile-menu>button{display:block;width:100%;border:0;background:#fff;text-align:left;padding:11px 14px;font-size:12px;cursor:pointer}
+.profile-menu>button:hover{background:#fafbfc}.profile-divider{border-top:1px solid var(--border)}.profile-menu .logout-btn{color:var(--danger)}
+.notification-head{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;border-bottom:1px solid var(--border);font-size:12px}
+.notification-item{display:flex;gap:9px;width:100%;border:0;border-bottom:1px solid #f0f1f2;background:#fff;text-align:left;padding:12px 14px;cursor:pointer}
+.notification-item:hover{background:#fafbfc}.notification-item.read{opacity:.62}.notification-item>span:last-child{min-width:0}
+.notification-item strong,.notification-item small,.notification-item em{display:block}.notification-item strong{font-size:11px}.notification-item small{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.35}.notification-item em{font-size:9px;color:#9aa0a6;margin-top:5px;font-style:normal}.notification-icon{color:var(--primary);font-size:19px;line-height:11px}
+.auth-shell{min-height:100vh;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 18px}
+.auth-brand{display:flex;align-items:center;gap:11px;margin-bottom:20px}.auth-brand .brand-mark{color:#fff}.auth-brand strong{font-size:17px}.auth-brand small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.auth-card{width:min(470px,100%);background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:26px}
+.auth-head{margin-bottom:20px}.auth-head h1{font-size:23px;margin:0 0 7px}.auth-head p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}.auth-submit{width:100%;margin-top:20px}
+.auth-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px}.check{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}.check input{accent-color:var(--primary)}
+.auth-switch{text-align:center;margin-top:18px;padding-top:17px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
+.auth-note{background:#fafbfc;border:1px solid var(--border);border-radius:8px;padding:10px;font-size:10px;color:var(--muted);margin-top:14px;line-height:1.4}
+.demo-login{margin-top:16px;background:var(--primary-soft);border-radius:8px;padding:10px 12px;font-size:10px;color:var(--primary-dark)}.demo-login strong,.demo-login span{display:block}.demo-login span{margin-top:2px}
+.account-profile{display:flex;align-items:center;gap:13px;padding:13px;background:#fafbfc;border:1px solid var(--border);border-radius:9px;margin-bottom:15px}
+.account-avatar{width:48px;height:48px;border-radius:50%;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;font-weight:800}.account-profile strong,.account-profile span{display:block}.account-profile span{font-size:11px;color:var(--muted);margin-top:3px}
+@media(max-width:650px){.profile-menu,.notification-panel{right:-4px;width:min(300px,calc(100vw - 36px))}}
