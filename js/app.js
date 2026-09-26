@@ -7,16 +7,24 @@ const state = {
   mobile: false,
   chat: [
     {role:"ai", text:"Hi! I'm MotoCare AI. I can help you understand your motorcycle's maintenance needs, explain services, and help you schedule an appointment."}
-  ]
+  ],
+  authenticated: localStorage.getItem("motocare_customer_session") === "1",
+  authView: "login",
+  profileOpen: false,
+  notificationsOpen: false,
+  account: JSON.parse(localStorage.getItem("motocare_customer_account") || '{"name":"Juan Dela Cruz","email":"juan@example.com","role":"Customer"}'),
+  notifications: [
+    {id:1,title:"Maintenance reminder",text:"Your CVT Inspection is approaching.",time:"Today",read:false},
+    {id:2,title:"Appointment confirmed",text:"CVT Inspection · Sep 30, 2026 · 10:00 AM",time:"Yesterday",read:false},
+    {id:3,title:"Service history updated",text:"Your Chain Adjustment record was added.",time:"Sep 05",read:true}
+  ],
+  bikes: [
+    {brand:"Honda", model:"Click 125i", year:2023, plate:"ABC 1234", mileage:"18,450 km", lastService:"September 5, 2026", nextService:"CVT Inspection", nextDue:"20,000 km", engine:"125cc", color:"Matte Black", chassis:"MC-23-01482", status:"Healthy"}
+  ],
+  selectedBike:0
 };
 
-const bike = {
-  brand:"Honda", model:"Click 125i", year:2023, plate:"ABC 1234",
-  mileage:"18,450 km", lastService:"September 5, 2026",
-  nextService:"CVT Inspection", nextDue:"20,000 km",
-  engine:"125cc", color:"Matte Black", chassis:"MC-23-01482",
-  status:"Healthy"
-};
+const bike = new Proxy({}, { get(_, key){ return state.bikes[state.selectedBike]?.[key] ?? ""; } });
 
 const history = [
   {date:"Sep 05, 2026", service:"Chain Adjustment", mechanic:"Ramon Cruz", cost:"₱450", status:"Completed"},
@@ -41,7 +49,8 @@ const nav = [
   ["appointments","◷","Appointments"],
   ["history","▤","Service History"],
   ["recommendations","✦","Maintenance & AI"],
-  ["chat","◉","MotoCare AI"]
+  ["chat","◉","MotoCare AI"],
+  ["account","◎","My Account"]
 ];
 
 function esc(v){
@@ -63,6 +72,7 @@ function pageTitle(){
 }
 
 function render(){
+  if(!state.authenticated){ app.innerHTML = authMarkup(); bindAuth(); return; }
   app.innerHTML = `
   <div class="app">
     <aside class="sidebar ${state.mobile?'open':''}">
@@ -84,10 +94,17 @@ function render(){
           <div class="breadcrumb">MotoCare AI / <strong>${pageTitle()}</strong></div>
         </div>
         <div class="top-actions">
-          <button class="icon-btn" data-action="notifications" title="Notifications">♢</button>
-          <div class="profile">
-            <div class="avatar">JV</div>
-            <div class="hide-mobile"><strong style="font-size:12px">Juan Dela Cruz</strong><div class="small-text muted">Customer</div></div>
+          <div class="notification-wrap">
+            <button class="icon-btn notification-button" data-action="notifications" title="Notifications">♢${state.notifications.filter(n=>!n.read).length?`<span class="notification-dot">${state.notifications.filter(n=>!n.read).length}</span>`:""}</button>
+            ${state.notificationsOpen ? notificationPanel() : ""}
+          </div>
+          <div class="profile-wrap">
+            <button class="profile profile-button" data-action="profile-menu">
+              <div class="avatar">${esc(initials(state.account.name))}</div>
+              <div class="hide-mobile"><strong style="font-size:12px">${esc(state.account.name)}</strong><div class="small-text muted">Customer</div></div>
+              <span class="profile-chevron">⌄</span>
+            </button>
+            ${state.profileOpen ? profileMenu() : ""}
           </div>
         </div>
       </header>
@@ -103,6 +120,40 @@ function render(){
   bind();
 }
 
+function authMarkup(){
+  const mode=state.authView;
+  const brand=`<div class="auth-brand"><div class="brand-mark">M</div><div><strong>MotoCare AI</strong><small>Customer Portal</small></div></div>`;
+  if(mode==="signup") return `<div class="auth-shell">${brand}<div class="auth-card"><div class="auth-head"><h1>Create Customer Account</h1><p>Create an account to manage your motorcycle and appointments.</p></div><form data-auth-form="signup"><div class="form-grid">${field("Full Name","name","","text",true)}${field("Email","email","","email",true)}${field("Password","password","","password",true)}${field("Confirm Password","confirm","","password",true)}</div><div class="auth-note">Prototype only: account data is stored locally in this browser.</div><button class="btn primary auth-submit">Create Account</button></form><div class="auth-switch">Already have an account? <button class="link-btn" data-auth-view="login">Sign in</button></div></div></div>`;
+  if(mode==="forgot") return `<div class="auth-shell">${brand}<div class="auth-card"><div class="auth-head"><h1>Reset Password</h1><p>Enter your email and we'll simulate a password reset request.</p></div><form data-auth-form="forgot">${field("Email","email",state.account.email||"","email",true)}<button class="btn primary auth-submit">Send Reset Link</button></form><div class="auth-switch"><button class="link-btn" data-auth-view="login">← Back to sign in</button></div></div></div>`;
+  return `<div class="auth-shell">${brand}<div class="auth-card"><div class="auth-head"><h1>Welcome to MotoCare AI</h1><p>Sign in to manage your motorcycle care and appointments.</p></div><form data-auth-form="login">${field("Email","email",state.account.email||"juan@example.com","email",true)}${field("Password","password","","password",true)}<div class="auth-row"><label class="check"><input type="checkbox" checked> Remember me</label><button type="button" class="link-btn" data-auth-view="forgot">Forgot password?</button></div><button class="btn primary auth-submit">Sign In</button></form><div class="demo-login"><strong>Prototype demo</strong><span>juan@example.com</span><span>customer123</span></div><div class="auth-switch">New to MotoCare AI? <button class="link-btn" data-auth-view="signup">Create an account</button></div></div></div>`;
+}
+function field(label,name,value,type="text",required=false){return `<div class="field"><label>${label}</label><input class="input" name="${name}" type="${type}" value="${esc(value)}" ${required?"required":""}></div>`;}
+function bindAuth(){
+  document.querySelectorAll("[data-auth-view]").forEach(b=>b.addEventListener("click",()=>{state.authView=b.dataset.authView;render()}));
+  document.querySelectorAll("form[data-auth-form]").forEach(f=>f.addEventListener("submit",e=>submitAuth(e,f.dataset.authForm)));
+}
+function submitAuth(e,type){
+  e.preventDefault(); const fd=new FormData(e.currentTarget),v=Object.fromEntries(fd.entries());
+  if(type==="login"){
+    const saved=JSON.parse(localStorage.getItem("motocare_customer_account")||"null");
+    const email=String(v.email||"").trim().toLowerCase();
+    const validDemo=email==="juan@example.com" && v.password==="customer123";
+    const validSaved=saved && email===String(saved.email).toLowerCase() && v.password===saved.password;
+    if(!validDemo && !validSaved){toast("Invalid email or password.");return;}
+    if(saved){state.account={name:saved.name,email:saved.email,role:"Customer"};}
+    state.authenticated=true;localStorage.setItem("motocare_customer_session","1");render();toast("Welcome back to MotoCare AI.");
+  } else if(type==="signup"){
+    if(v.password!==v.confirm){toast("Passwords do not match.");return;}
+    if(String(v.password||"").length<6){toast("Password must be at least 6 characters.");return;}
+    state.account={name:v.name,email:v.email,role:"Customer"};
+    localStorage.setItem("motocare_customer_account",JSON.stringify({...state.account,password:v.password}));
+    state.authenticated=true;localStorage.setItem("motocare_customer_session","1");render();toast("Customer account created.");
+  } else {state.authView="login";render();toast("Password reset link simulated. Check your email.");}
+}
+function profileMenu(){return `<div class="profile-menu"><div class="profile-menu-head"><div class="avatar">${esc(initials(state.account.name))}</div><div><strong>${esc(state.account.name)}</strong><span>${esc(state.account.email)}</span></div></div><button data-action="go" data-page="account">Profile & Account</button><button data-action="change-password">Change Password</button><div class="profile-divider"></div><button class="logout-btn" data-action="logout">Log Out</button></div>`;}
+function notificationPanel(){return `<div class="notification-panel"><div class="notification-head"><strong>Notifications</strong><button class="link-btn" data-action="mark-notifications">Mark all read</button></div>${state.notifications.map(n=>`<button class="notification-item ${n.read?'read':''}" data-action="read-notification" data-id="${n.id}"><span class="notification-icon">•</span><span><strong>${esc(n.title)}</strong><small>${esc(n.text)}</small><em>${esc(n.time)}</em></span></button>`).join("")}</div>`;}
+function accountPage(){return pageHead("My Account","Manage your customer profile, security, and account preferences.",`<button class="btn primary" data-action="edit-account">Edit Profile</button>`)+`<div class="detail-grid"><div class="card panel"><div class="panel-head"><h2>Profile</h2></div><div class="account-profile"><div class="account-avatar">${esc(initials(state.account.name))}</div><div><strong>${esc(state.account.name)}</strong><span>Customer</span></div></div><div class="info-list">${info("Full Name",esc(state.account.name))}${info("Email",esc(state.account.email))}${info("Account Type","Customer")}${info("Status",badge("Active"))}</div></div><div class="card panel"><div class="panel-head"><h2>Security</h2></div><div class="list"><div class="list-row"><div><strong>Password</strong><div class="small-text muted">Change your account password.</div></div><button class="link-btn" data-action="change-password">Change</button></div><div class="list-row"><div><strong>Session</strong><div class="small-text muted">This browser session is active.</div></div>${badge("Active")}</div></div></div></div>`;}
+
 function content(){
   if(state.page==="home") return home();
   if(state.page==="motorcycle") return motorcycle();
@@ -110,6 +161,7 @@ function content(){
   if(state.page==="history") return historyPage();
   if(state.page==="recommendations") return recommendationPage();
   if(state.page==="chat") return chatPage();
+  if(state.page==="account") return accountPage();
   return home();
 }
 
@@ -169,7 +221,7 @@ function home(){
 
 function motorcycle(){
   return pageHead("My Motorcycle","Your motorcycle profile, mileage, and maintenance information.",
-    `<button class="btn primary" data-action="book" data-service="General Checkup">Book Service</button>`) +
+    `<button class="btn" data-action="add-bike">Add Motorcycle</button><button class="btn primary" data-action="book" data-service="General Checkup">Book Service</button>`) +
   `<div class="detail-grid">
     <div class="card panel">
       <div class="panel-head"><h2>Motorcycle Profile</h2></div>
@@ -304,6 +356,9 @@ function info(label,value){
 }
 
 function modalMarkup(){
+  if(state.modal.type==="bike") return `<div class="modal"><div class="modal-head"><h3>Add Motorcycle</h3><button class="close" data-action="close-modal">×</button></div><div class="modal-body"><div class="form-grid">${field("Brand","brand","","text",true)}${field("Model","model","","text",true)}${field("Year","year","","number",true)}${field("Plate Number","plate","","text",true)}${field("Current Mileage","mileage","","text",true)}${field("Engine","engine","","text",false)}</div><div class="form-actions"><button class="btn" data-action="close-modal">Cancel</button><button class="btn primary" data-action="save-bike">Add Motorcycle</button></div></div></div>`;
+  if(state.modal.type==="account") return `<div class="modal"><div class="modal-head"><h3>Edit Profile</h3><button class="close" data-action="close-modal">×</button></div><div class="modal-body"><form data-form="account"><div class="form-grid">${field("Full Name","name",state.account.name,"text",true)}${field("Email","email",state.account.email,"email",true)}</div><div class="form-actions"><button class="btn" type="button" data-action="close-modal">Cancel</button><button class="btn primary">Save Changes</button></div></form></div></div>`;
+  if(state.modal.type==="password") return `<div class="modal"><div class="modal-head"><h3>Change Password</h3><button class="close" data-action="close-modal">×</button></div><div class="modal-body"><form data-form="password"><div class="form-grid">${field("Current Password","current","","password",true)}${field("New Password","password","","password",true)}${field("Confirm New Password","confirm","","password",true)}</div><div class="form-actions"><button class="btn" type="button" data-action="close-modal">Cancel</button><button class="btn primary">Change Password</button></div></form></div></div>`;
   if(state.modal.type==="booking"){
     return `<div class="modal">
       <div class="modal-head"><h3>Book a Service Appointment</h3><button class="close" data-action="close-modal">×</button></div>
@@ -331,10 +386,8 @@ function modalMarkup(){
   }
 }
 
-function openBooking(service){
-  state.modal={type:"booking",service:service||"General Checkup"};
-  render();
-}
+function openBooking(service){ state.modal={type:"booking",service:service||"General Checkup"}; render(); }
+function openModal(type){ state.modal={type}; render(); }
 function toast(msg){
   const t=document.getElementById("toast");
   if(!t)return;
@@ -388,12 +441,21 @@ function bind(){
         const ap=appointments.find(x=>x.id===el.dataset.id); if(ap)ap.status="Cancelled";
         state.modal=null;render();toast("Appointment cancelled.");
       }
-      else if(a==="notifications"){toast("You have 1 maintenance reminder.");}
+      else if(a==="notifications"){state.notificationsOpen=!state.notificationsOpen;state.profileOpen=false;render();}
+      else if(a==="profile-menu"){state.profileOpen=!state.profileOpen;state.notificationsOpen=false;render();}
+      else if(a==="logout"){state.authenticated=false;state.authView="login";state.profileOpen=false;localStorage.removeItem("motocare_customer_session");render();}
+      else if(a==="change-password"){state.profileOpen=false;openModal("password");}
+      else if(a==="edit-account"){openModal("account");}
+      else if(a==="add-bike"){openModal("bike");}
+      else if(a==="mark-notifications"){state.notifications.forEach(n=>n.read=true);state.notificationsOpen=true;render();}
+      else if(a==="read-notification"){const n=state.notifications.find(x=>x.id===Number(el.dataset.id));if(n)n.read=true;state.notificationsOpen=true;render();}
       else if(a==="prompt"){sendChat(el.dataset.text);}
       else if(a==="send-chat"){const input=document.getElementById("chatInput");if(input)sendChat(input.value);}
+      else if(a==="save-bike"){const modal=document.querySelector('.modal');const inputs=modal.querySelectorAll('input');const vals={};inputs.forEach(i=>vals[i.name]=i.value);if(!vals.brand||!vals.model||!vals.year||!vals.plate||!vals.mileage){toast("Please complete the required motorcycle details.");return;}state.bikes.push({...vals,status:"Healthy",lastService:"Not recorded",nextService:"Maintenance check",nextDue:"To be determined",color:"Not specified",chassis:"Not recorded"});state.selectedBike=state.bikes.length-1;state.modal=null;render();toast("Motorcycle added.");}
       else if(a==="clear-chat"){state.chat=[{role:"ai",text:"Hi! I'm MotoCare AI. How can I help with your motorcycle today?"}];render();}
     });
   });
+  document.querySelectorAll("form[data-form]").forEach(f=>f.addEventListener("submit",e=>{e.preventDefault();const v=Object.fromEntries(new FormData(f).entries());if(f.dataset.form==="account"){state.account.name=v.name;state.account.email=v.email;localStorage.setItem("motocare_customer_account",JSON.stringify({...JSON.parse(localStorage.getItem("motocare_customer_account")||"{}"),...state.account}));state.modal=null;render();toast("Profile updated.");}else if(f.dataset.form==="password"){if(v.password!==v.confirm){toast("New passwords do not match.");return;}if(String(v.password).length<6){toast("Password must be at least 6 characters.");return;}state.modal=null;render();toast("Password changed successfully.");}}));
   const input=document.getElementById("chatInput");
   if(input)input.addEventListener("keydown",e=>{if(e.key==="Enter")sendChat(input.value);});
 }
